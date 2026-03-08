@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="412EPI W&B">
+<title>Bell 412EPI — W&amp;B Performance Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#06080f;--surface:#0b0f1a;--panel:#0f1520;
+  --border:#1a2235;--border2:#243048;--text:#c8d8f0;
+  --muted:#4a6080;--subtle:#2a3a55;
+  --green:#00e87a;--green-dim:#003d20;
+  --yellow:#f5c842;--red:#ff4060;--blue:#3b8eff;--cyan:#00d4ff;
+  --font-mono:'Share Tech Mono',monospace;--font-ui:'Rajdhani',sans-serif;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+  --safe-l:env(safe-area-inset-left,0px);
+  --safe-r:env(safe-area-inset-right,0px);
+}
+
+/* ── BASE ── */
+html{height:100%;height:-webkit-fill-available;}
+body{
+  min-height:100vh;min-height:-webkit-fill-available;
+  background:var(--bg);color:var(--text);
+  font-family:var(--font-ui);font-size:15px;
+  overflow:hidden;
+  -webkit-text-size-adjust:100%;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-font-smoothing:antialiased;
+}
+.app{
+  display:flex;flex-direction:column;
+  height:100vh;height:-webkit-fill-available;
+  overflow:hidden;
+  padding-top:var(--safe-top);
+  padding-left:var(--safe-l);
+  padding-right:var(--safe-r);
+}
+
+/* ── HEADER ── */
+.header{
+  background:var(--surface);
+  border-bottom:1px solid var(--border2);
+  display:flex;align-items:center;
+  padding:0 16px;gap:10px;
+  height:52px;flex-shrink:0;
+  -webkit-user-select:none;user-select:none;
+}
+.header-reg{font-family:var(--font-mono);font-size:14px;color:var(--yellow);letter-spacing:2px;}
+.header-model{font-size:16px;font-weight:700;color:var(--cyan);letter-spacing:1.5px;}
+.header-sub{font-family:var(--font-mono);font-size:10px;color:var(--muted);display:none;}
+.header-status{margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:nowrap;}
+.status-pill{
+  font-family:var(--font-mono);font-size:9px;
+  padding:4px 8px;border-radius:4px;
+  border:1px solid var(--border2);background:var(--panel);
+  white-space:nowrap;
+}
+.status-pill.ok{color:var(--green);border-color:var(--green-dim);}
+.status-pill.err{color:var(--red);border-color:#5a0015;background:#1a000a;}
+.status-pill.warn{color:var(--yellow);border-color:#4a3500;background:#1a1000;}
+
+/* ── TAB BAR ── */
+.tab-bar{
+  display:flex;background:var(--surface);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.tab-bar::-webkit-scrollbar{display:none;}
+.tab-btn{
+  padding:0 14px;height:46px;
+  font-family:var(--font-mono);font-size:10px;
+  letter-spacing:1.2px;color:var(--muted);
+  cursor:pointer;border-bottom:2px solid transparent;
+  transition:color 0.15s;-webkit-user-select:none;user-select:none;
+  white-space:nowrap;display:flex;align-items:center;gap:5px;
+  text-transform:uppercase;
+  -webkit-tap-highlight-color:transparent;
+  min-width:44px;/* iOS minimum touch target */
+}
+.tab-btn.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+.tab-sep{width:1px;background:var(--border);margin:8px 0;flex-shrink:0;}
+
+/* ── TAB CONTENT ── */
+.tab-body{flex:1;overflow:hidden;position:relative;}
+.tab-pane{
+  display:none;position:absolute;inset:0;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
+  padding:16px 16px calc(16px + var(--safe-bot));
+}
+.tab-pane.active{display:block;}
+.pane-narrow{max-width:600px;margin:0 auto;}
+.pane-mid{max-width:900px;margin:0 auto;}
+.pane-wide{max-width:1100px;margin:0 auto;}
+
+/* ── SECTION ── */
+.section{background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px;}
+.section-head{background:var(--surface);border-bottom:1px solid var(--border);padding:9px 14px;display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;-webkit-user-select:none;user-select:none;}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);flex-shrink:0;}
+.section-body{padding:14px;display:flex;flex-direction:column;gap:14px;}
+
+/* ── SLIDERS ── */
+.form-row{display:flex;align-items:center;gap:10px;}
+.form-label{font-size:12px;color:var(--muted);min-width:120px;flex-shrink:0;line-height:1.3;}
+input[type=range]{
+  flex:1;
+  -webkit-appearance:none;appearance:none;
+  accent-color:var(--cyan);
+  height:28px;/* tall hit area for fingers */
+  background:transparent;
+  cursor:pointer;
+  touch-action:pan-x;
+}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--subtle);border-radius:2px;}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:26px;height:26px;border-radius:50%;
+  background:var(--cyan);
+  margin-top:-11px;
+  box-shadow:0 2px 8px rgba(0,212,255,0.4);
+}
+.form-val{font-family:var(--font-mono);font-size:16px;color:var(--cyan);min-width:52px;text-align:right;font-weight:600;}
+.form-unit{font-family:var(--font-mono);font-size:12px;color:var(--yellow);min-width:40px;font-weight:600;}
+
+/* ── RESULT ROWS ── */
+.res-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);min-height:44px;}
+.res-row:last-child{border-bottom:none;}
+.res-label{font-size:13px;color:var(--muted);padding-right:8px;}
+.res-val{font-family:var(--font-mono);font-size:15px;font-weight:600;color:var(--text);text-align:right;}
+.res-val.ok{color:var(--green);}.res-val.warn{color:var(--yellow);}.res-val.err{color:var(--red);}
+.res-val.big{font-size:20px;}
+.res-divider{padding:5px 14px;font-family:var(--font-mono);font-size:9px;color:var(--subtle);letter-spacing:1.5px;text-transform:uppercase;border-bottom:1px solid var(--border);background:var(--surface);}
+
+/* ── GRID LAYOUTS ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+
+/* ── EQUIPMENT ── */
+.equip-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 14px;}
+.equip-btn{
+  display:flex;align-items:center;gap:8px;
+  padding:12px 10px;
+  border:1px solid var(--border);border-radius:8px;
+  background:var(--surface);
+  -webkit-user-select:none;user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  min-height:44px;
+  transition:border-color 0.12s,background 0.12s;
+  cursor:pointer;
+}
+.equip-btn.on{border-color:var(--cyan);background:rgba(0,212,255,0.08);}
+.equip-check{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--muted);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
+.equip-btn.on .equip-check{background:var(--cyan);border-color:var(--cyan);color:#000;}
+.equip-name{font-size:11px;color:var(--muted);flex:1;line-height:1.2;}
+.equip-btn.on .equip-name{color:var(--text);}
+.equip-wt{font-family:var(--font-mono);font-size:9px;color:var(--subtle);flex-shrink:0;}
+
+/* ── SEAT MAP ── */
+.seatmap-wrap{display:flex;gap:16px;align-items:flex-start;}
+.heli-svg{display:block;flex-shrink:0;}
+.seat-zone{cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.seat-zone rect{fill:rgba(15,25,50,0.85);stroke:#243048;stroke-width:1.5;}
+.seat-zone.occupied rect{fill:rgba(0,100,40,0.7);stroke:var(--green);}
+.seat-zone text{fill:var(--muted);font-family:var(--font-mono);font-size:7.5px;pointer-events:none;text-anchor:middle;dominant-baseline:middle;}
+.seat-zone.occupied text{fill:#80ffb8;}
+.seat-zone.crew rect{fill:rgba(30,20,0,0.8);stroke:var(--yellow);}
+.seat-zone.crew text{fill:var(--yellow);}
+.seatmap-sidebar{flex:1;display:flex;flex-direction:column;gap:12px;min-width:0;}
+.qsel-row{display:flex;flex-wrap:wrap;gap:8px;padding:10px 14px;}
+.qbtn{
+  font-family:var(--font-mono);font-size:10px;
+  padding:8px 14px;
+  background:var(--surface);border:1px solid var(--border2);
+  color:var(--muted);border-radius:6px;
+  min-height:36px;
+  -webkit-user-select:none;user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  cursor:pointer;letter-spacing:1px;
+}
+.qbtn.green{background:rgba(0,232,122,0.08);border-color:var(--green-dim);color:var(--green);}
+
+/* ── PERF BLOCKS ── */
+.perf-block{background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px;}
+.perf-block-head{padding:9px 14px;background:var(--surface);border-bottom:1px solid var(--border);font-family:var(--font-mono);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;gap:8px;-webkit-user-select:none;user-select:none;}
+.perf-grid{display:grid;grid-template-columns:1fr 1fr;}
+.perf-cell{padding:14px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);}
+.perf-cell:nth-child(2n){border-right:none;}
+.perf-cell:nth-last-child(-n+2){border-bottom:none;}
+.perf-cell-label{font-size:10px;color:var(--muted);margin-bottom:5px;line-height:1.3;}
+.perf-cell-val{font-family:var(--font-mono);font-size:20px;font-weight:600;color:var(--text);}
+.perf-cell-val.ok{color:var(--green);}.perf-cell-val.warn{color:var(--yellow);}.perf-cell-val.err{color:var(--red);}
+.perf-cell-unit{font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-left:3px;}
+.sub-div{padding:5px 14px;font-family:var(--font-mono);font-size:9px;color:var(--subtle);letter-spacing:1.5px;text-transform:uppercase;border-bottom:1px solid var(--border);border-top:1px solid var(--border);background:var(--surface);}
+.limit-bar-wrap{margin-top:6px;}
+.limit-bar-bg{height:4px;background:var(--subtle);border-radius:2px;overflow:hidden;}
+.limit-bar-fill{height:100%;border-radius:2px;-webkit-transition:width 0.4s;transition:width 0.4s;}
+
+/* ── CG CHART ── */
+.cg-chart-wrap{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;}
+.cg-chart-title{font-family:var(--font-mono);font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;}
+#cgCanvas{display:block;width:100%;}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE: IPHONE (portrait, ≤ 430px)
+══════════════════════════════════════════ */
+@media (max-width:430px){
+  .header-model{font-size:14px;}
+  .header-reg{display:none;}
+  .status-pill{font-size:8px;padding:3px 6px;}
+  .tab-btn{padding:0 10px;font-size:9px;letter-spacing:0.8px;}
+  .two-col{grid-template-columns:1fr;}
+  .equip-grid{grid-template-columns:1fr 1fr;}
+  .seatmap-wrap{flex-direction:column;}
+  .heli-svg{width:100% !important;max-width:320px;margin:0 auto;}
+  .pane-narrow,.pane-mid,.pane-wide{max-width:100%;}
+  .form-label{min-width:90px;font-size:11px;}
+  .form-val{font-size:15px;min-width:44px;}
+  .form-unit{min-width:34px;font-size:11px;}
+  .perf-cell-val{font-size:17px;}
+  .res-val.big{font-size:18px;}
+}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE: IPHONE LANDSCAPE (height ≤ 430px)
+══════════════════════════════════════════ */
+@media (max-height:430px) and (orientation:landscape){
+  .header{height:40px;}
+  .tab-btn{height:36px;}
+  .res-row{min-height:36px;padding:6px 14px;}
+  .section-body{gap:10px;padding:10px 14px;}
+  .perf-cell{padding:10px 12px;}
+  .perf-cell-val{font-size:17px;}
+}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE: IPAD (≥ 768px)
+══════════════════════════════════════════ */
+@media (min-width:768px){
+  .header-sub{display:block;}
+  .header{padding:0 24px;gap:16px;height:52px;}
+  .tab-btn{padding:0 20px;font-size:11px;height:46px;}
+  .equip-grid{grid-template-columns:1fr 1fr 1fr;}
+  .section-body{padding:16px;gap:14px;}
+  .form-label{min-width:160px;}
+  .perf-cell{padding:16px 18px;}
+  .perf-cell-val{font-size:22px;}
+}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE: IPAD LANDSCAPE / LARGE (≥ 1024px)
+══════════════════════════════════════════ */
+@media (min-width:1024px){
+  .tab-btn{padding:0 22px;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<header class="header">
+  <span class="header-reg">CN-AHE</span>
+  <span class="header-model">BELL 412EPI</span>
+  <span class="header-sub">SN: 122 &nbsp;|&nbsp; W&amp;B PERFORMANCE CALCULATOR</span>
+  <div class="header-status">
+    <span class="status-pill" id="st-weight">T/O WT: — lbs</span>
+    <span class="status-pill" id="st-cg">CG: — in</span>
+    <span class="status-pill" id="st-da">DA: — ft</span>
+  </div>
+</header>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <div class="tab-btn active" data-tab="weather">◈ WEATHER</div>
+  <div class="tab-sep"></div>
+  <div class="tab-btn" data-tab="fuel">◈ FUEL</div>
+  <div class="tab-sep"></div>
+  <div class="tab-btn" data-tab="weights">◈ WEIGHTS</div>
+  <div class="tab-sep"></div>
+  <div class="tab-btn" data-tab="equip">◈ EQUIPMENT</div>
+  <div class="tab-sep"></div>
+  <div class="tab-btn" data-tab="stations">◈ STATIONS</div>
+  <div class="tab-sep"></div>
+  <div class="tab-btn" data-tab="wb">◈ W &amp; B</div>
+  <div class="tab-sep"></div>
+  <div class="tab-btn" data-tab="perf">◈ PERFORMANCE</div>
+</div>
+
+<div class="tab-body">
+
+<!-- ████ WEATHER ████ -->
+<div class="tab-pane active" id="tab-weather">
+  <div class="pane-narrow">
+    <div class="section">
+      <div class="section-head"><span class="dot"></span>ATMOSPHERIC CONDITIONS</div>
+      <div class="section-body">
+        <div class="form-row">
+          <span class="form-label">Outside Air Temp (OAT)</span>
+          <input type="range" id="oat" min="-40" max="55" step="1" value="20">
+          <span class="form-val" id="oat-v">20</span>
+          <span class="form-unit">°C</span>
+        </div>
+        <div class="form-row">
+          <span class="form-label">Pressure Altitude</span>
+          <input type="range" id="pa" min="0" max="8000" step="100" value="0">
+          <span class="form-val" id="pa-v">0</span>
+          <span class="form-unit">ft</span>
+        </div>
+        <div class="form-row">
+          <span class="form-label">Wind Speed</span>
+          <input type="range" id="wind" min="0" max="60" step="1" value="0">
+          <span class="form-val" id="wind-v">0</span>
+          <span class="form-unit">kts</span>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-head"><span class="dot" style="background:var(--green)"></span>DERIVED VALUES</div>
+      <div class="res-row"><span class="res-label">Density Altitude</span><span class="res-val big" id="da-out">— ft</span></div>
+      <div class="res-row"><span class="res-label">Effective Temperature</span><span class="res-val" id="eff-temp-out">— °C</span></div>
+      <div class="res-row"><span class="res-label">ISA Deviation</span><span class="res-val" id="isa-dev-out">— °C</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ████ FUEL ████ -->
+<div class="tab-pane" id="tab-fuel">
+  <div class="pane-narrow">
+    <div class="section">
+      <div class="section-head"><span class="dot" style="background:var(--yellow)"></span>FUEL PLANNING</div>
+      <div class="section-body">
+        <div class="form-row">
+          <span class="form-label">Fuel Load</span>
+          <input type="range" id="fuel" min="0" max="2500" step="50" value="1300">
+          <span class="form-val" id="fuel-v">1300</span>
+          <span class="form-unit">lbs</span>
+        </div>
+        <div class="form-row">
+          <span class="form-label">Burn Rate</span>
+          <input type="range" id="burnrate" min="0" max="900" step="10" value="700">
+          <span class="form-val" id="burnrate-v">700</span>
+          <span class="form-unit">lbs/h</span>
+        </div>
+        <div class="form-row">
+          <span class="form-label">Flight Time</span>
+          <input type="range" id="flighttime" min="0" max="5" step="0.1" value="1.0">
+          <span class="form-val" id="flighttime-v">1.0</span>
+          <span class="form-unit">h</span>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-head"><span class="dot" style="background:var(--green)"></span>FUEL SUMMARY</div>
+      <div class="res-row"><span class="res-label">Total Fuel Burn</span><span class="res-val big" id="burn-total-out">700 lbs</span></div>
+      <div class="res-row"><span class="res-label">Fuel CG Arm (T/O)</span><span class="res-val" id="fuel-cg-out">— in</span></div>
+      <div class="res-row"><span class="res-label">Landing Fuel Remaining</span><span class="res-val" id="ldg-fuel-out">— lbs</span></div>
+      <div class="res-row"><span class="res-label">Max Endurance</span><span class="res-val" id="endurance-out">— h</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ████ WEIGHTS ████ -->
+<div class="tab-pane" id="tab-weights">
+  <div class="pane-mid">
+    <div class="two-col">
+      <div class="section">
+        <div class="section-head"><span class="dot" style="background:var(--yellow)"></span>CREW WEIGHTS</div>
+        <div class="section-body">
+          <div class="form-row"><span class="form-label">Pilot</span><input type="range" id="wt-pilot" min="0" max="350" step="5" value="190"><span class="form-val" id="wt-pilot-v">190</span><span class="form-unit">lbs</span></div>
+          <div class="form-row"><span class="form-label">Co-Pilot</span><input type="range" id="wt-copilot" min="0" max="350" step="5" value="190"><span class="form-val" id="wt-copilot-v">190</span><span class="form-unit">lbs</span></div>
+          <div class="form-row"><span class="form-label">Flight Op.</span><input type="range" id="wt-fop" min="0" max="350" step="5" value="190"><span class="form-val" id="wt-fop-v">190</span><span class="form-unit">lbs</span></div>
+          <div class="form-row"><span class="form-label">Sensor Op.</span><input type="range" id="wt-sop" min="0" max="350" step="5" value="0"><span class="form-val" id="wt-sop-v">0</span><span class="form-unit">lbs</span></div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-head"><span class="dot" style="background:var(--muted)"></span>CARGO &amp; BAGGAGE</div>
+        <div class="section-body">
+          <div class="form-row"><span class="form-label">Baggage Compartment</span><input type="range" id="bag" min="0" max="500" step="10" value="0"><span class="form-val" id="bag-v">0</span><span class="form-unit">lbs</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-head"><span class="dot" style="background:var(--green)"></span>WEIGHT BREAKDOWN</div>
+      <div class="res-row"><span class="res-label">Aircraft Empty Weight</span><span class="res-val">8,482 lbs</span></div>
+      <div class="res-row"><span class="res-label">Crew Total</span><span class="res-val" id="crew-total-out">— lbs</span></div>
+      <div class="res-row"><span class="res-label">Passengers Total</span><span class="res-val" id="pax-total-wt2">0 lbs</span></div>
+      <div class="res-row"><span class="res-label">Equipment Total</span><span class="res-val" id="equip-total-out">0 lbs</span></div>
+      <div class="res-row"><span class="res-label">Baggage</span><span class="res-val" id="bag-total-out">0 lbs</span></div>
+      <div class="res-row"><span class="res-label">Zero Fuel Weight</span><span class="res-val big" id="zfw-out">— lbs</span></div>
+      <div class="res-row"><span class="res-label">Fuel Load</span><span class="res-val" id="fuel-out2">— lbs</span></div>
+      <div class="res-row" style="background:rgba(0,232,122,0.04)"><span class="res-label" style="color:var(--text);font-weight:600">Takeoff Gross Weight</span><span class="res-val big ok" id="togw-out2">— lbs</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ████ EQUIPMENT ████ -->
+<div class="tab-pane" id="tab-equip">
+  <div class="pane-mid">
+    <div class="section">
+      <div class="section-head"><span class="dot" style="background:var(--blue)"></span>MISSION EQUIPMENT — CLICK TO TOGGLE</div>
+      <div class="equip-grid" id="equip-grid"></div>
+    </div>
+    <div class="section">
+      <div class="section-head"><span class="dot" style="background:var(--green)"></span>EQUIPMENT SUMMARY</div>
+      <div class="res-row"><span class="res-label">Active Items</span><span class="res-val big" id="equip-count-out">0</span></div>
+      <div class="res-row"><span class="res-label">Total Equipment Weight</span><span class="res-val big" id="equip-wt-out">0 lbs</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ████ STATIONS ████ -->
+<div class="tab-pane" id="tab-stations">
+  <div class="pane-wide">
+    <div class="seatmap-wrap">
+      <div class="heli-wrap">
+        <svg class="heli-svg" viewBox="0 0 520 760">
+          <defs>
+            <radialGradient id="bg-grd" cx="50%" cy="40%">
+              <stop offset="0%" stop-color="#101828"/><stop offset="100%" stop-color="#060a12"/>
+            </radialGradient>
+          </defs>
+          <rect width="520" height="760" fill="url(#bg-grd)" rx="6"/>
+          <ellipse cx="260" cy="340" rx="130" ry="210" fill="rgba(10,16,30,0.95)" stroke="#1e2d45" stroke-width="1.5"/>
+          <path d="M190,200 Q260,100 330,200" fill="rgba(10,16,30,0.95)" stroke="#1e2d45" stroke-width="1.5"/>
+          <path d="M230,540 L240,720 Q260,740 280,720 L290,540 Z" fill="rgba(8,12,22,0.95)" stroke="#1a2535" stroke-width="1.5"/>
+          <rect x="242" y="700" width="36" height="8" rx="3" fill="rgba(15,25,40,0.9)" stroke="#243048" stroke-width="1"/>
+          <path d="M207,205 Q260,155 313,205 L305,245 Q260,225 215,245 Z" fill="rgba(0,50,80,0.3)" stroke="#1a3555" stroke-width="1.2"/>
+          <circle cx="260" cy="240" r="16" fill="rgba(20,30,50,0.9)" stroke="#243048" stroke-width="1.5"/>
+          <circle cx="260" cy="240" r="6" fill="#0f1a2e" stroke="#2a4060" stroke-width="1.2"/>
+          <line x1="100" y1="240" x2="420" y2="240" stroke="#151f30" stroke-width="2"/>
+          <line x1="260" y1="80" x2="260" y2="400" stroke="#151f30" stroke-width="2"/>
+          <ellipse cx="148" cy="360" rx="42" ry="18" fill="rgba(10,16,28,0.9)" stroke="#1a2535" stroke-width="1.2"/>
+          <ellipse cx="372" cy="360" rx="42" ry="18" fill="rgba(10,16,28,0.9)" stroke="#1a2535" stroke-width="1.2"/>
+          <line x1="108" y1="340" x2="108" y2="420" stroke="#1a2535" stroke-width="5" stroke-linecap="round"/>
+          <line x1="108" y1="380" x2="155" y2="380" stroke="#1a2535" stroke-width="3"/>
+          <line x1="412" y1="340" x2="412" y2="420" stroke="#1a2535" stroke-width="5" stroke-linecap="round"/>
+          <line x1="365" y1="380" x2="412" y2="380" stroke="#1a2535" stroke-width="3"/>
+          <text x="260" y="128" text-anchor="middle" fill="#243048" font-family="'Share Tech Mono',monospace" font-size="9" letter-spacing="2">▲ NOSE</text>
+          <text x="260" y="748" text-anchor="middle" fill="#243048" font-family="'Share Tech Mono',monospace" font-size="9" letter-spacing="2">▼ TAIL</text>
+          <!-- Crew fixed -->
+          <g class="seat-zone crew" id="seat-pilot"><rect x="208" y="260" width="48" height="36" rx="4"/><text x="232" y="275">PILOT</text><text x="232" y="287" style="font-size:7px;fill:#b8920a" id="pilot-wt-label">190 lbs</text></g>
+          <g class="seat-zone crew" id="seat-copilot"><rect x="264" y="260" width="48" height="36" rx="4"/><text x="288" y="275">CO-PIL</text><text x="288" y="287" style="font-size:7px;fill:#b8920a" id="copilot-wt-label">190 lbs</text></g>
+          <g class="seat-zone crew" id="seat-fop"><rect x="208" y="390" width="46" height="14" rx="3"/><text x="231" y="400" style="font-size:7px">FLT OP</text></g>
+          <g class="seat-zone crew" id="seat-sop"><rect x="266" y="390" width="46" height="14" rx="3"/><text x="289" y="400" style="font-size:7px">SNS OP</text></g>
+          <!-- FWD row -->
+          <g class="seat-zone" id="seat-fwd_lo" onclick="toggleSeat('fwd_lo')"><rect x="175" y="308" width="44" height="34" rx="4"/><text x="197" y="322">FWD L</text><text x="197" y="333">OB</text></g>
+          <g class="seat-zone" id="seat-fwd_li" onclick="toggleSeat('fwd_li')"><rect x="222" y="308" width="38" height="34" rx="4"/><text x="241" y="322">FWD L</text><text x="241" y="333">IB</text></g>
+          <g class="seat-zone" id="seat-fwd_ri" onclick="toggleSeat('fwd_ri')"><rect x="263" y="308" width="38" height="34" rx="4"/><text x="282" y="322">FWD R</text><text x="282" y="333">IB</text></g>
+          <g class="seat-zone" id="seat-fwd_ro" onclick="toggleSeat('fwd_ro')"><rect x="304" y="308" width="44" height="34" rx="4"/><text x="326" y="322">FWD R</text><text x="326" y="333">OB</text></g>
+          <!-- CTR row -->
+          <g class="seat-zone" id="seat-ctr_lo" onclick="toggleSeat('ctr_lo')"><rect x="165" y="356" width="42" height="34" rx="4"/><text x="186" y="370">CTR L</text><text x="186" y="381">OB</text></g>
+          <g class="seat-zone" id="seat-ctr_lm" onclick="toggleSeat('ctr_lm')"><rect x="210" y="356" width="38" height="34" rx="4"/><text x="229" y="370">CTR L</text><text x="229" y="381">IB</text></g>
+          <g class="seat-zone" id="seat-ctr_c"  onclick="toggleSeat('ctr_c')"><rect x="251" y="356" width="38" height="34" rx="4"/><text x="270" y="370">CTR</text><text x="270" y="381">CTR</text></g>
+          <g class="seat-zone" id="seat-ctr_rm" onclick="toggleSeat('ctr_rm')"><rect x="292" y="356" width="38" height="34" rx="4"/><text x="311" y="370">CTR R</text><text x="311" y="381">IB</text></g>
+          <g class="seat-zone" id="seat-ctr_ro" onclick="toggleSeat('ctr_ro')"><rect x="333" y="356" width="42" height="34" rx="4"/><text x="354" y="370">CTR R</text><text x="354" y="381">OB</text></g>
+          <!-- AFT row -->
+          <g class="seat-zone" id="seat-aft_fl" onclick="toggleSeat('aft_fl')"><rect x="195" y="408" width="52" height="34" rx="4"/><text x="221" y="422">AFT FWD</text><text x="221" y="433">L</text></g>
+          <g class="seat-zone" id="seat-aft_al" onclick="toggleSeat('aft_al')"><rect x="195" y="446" width="52" height="34" rx="4"/><text x="221" y="460">AFT AFT</text><text x="221" y="471">L</text></g>
+          <g class="seat-zone" id="seat-aft_fr" onclick="toggleSeat('aft_fr')"><rect x="273" y="408" width="52" height="34" rx="4"/><text x="299" y="422">AFT FWD</text><text x="299" y="433">R</text></g>
+          <g class="seat-zone" id="seat-aft_ar" onclick="toggleSeat('aft_ar')"><rect x="273" y="446" width="52" height="34" rx="4"/><text x="299" y="460">AFT AFT</text><text x="299" y="471">R</text></g>
+          <!-- Legend -->
+          <rect x="16" y="660" width="12" height="10" rx="2" fill="rgba(0,100,40,0.7)" stroke="#00e87a" stroke-width="1"/><text x="32" y="669" fill="#4a6080" font-family="'Share Tech Mono',monospace" font-size="8">OCCUPIED</text>
+          <rect x="16" y="676" width="12" height="10" rx="2" fill="rgba(30,20,0,0.8)" stroke="#f5c842" stroke-width="1"/><text x="32" y="685" fill="#4a6080" font-family="'Share Tech Mono',monospace" font-size="8">CREW (FIXED)</text>
+          <rect x="16" y="692" width="12" height="10" rx="2" fill="rgba(15,25,50,0.85)" stroke="#243048" stroke-width="1"/><text x="32" y="701" fill="#4a6080" font-family="'Share Tech Mono',monospace" font-size="8">EMPTY</text>
+          <text x="260" y="644" text-anchor="middle" fill="#243048" font-family="'Share Tech Mono',monospace" font-size="8" letter-spacing="1">CLICK SEAT TO TOGGLE OCCUPANCY</text>
+        </svg>
+      </div>
+      <div class="seatmap-sidebar">
+        <div class="section">
+          <div class="section-head"><span class="dot" style="background:var(--green)"></span>PASSENGER WEIGHT</div>
+          <div class="section-body">
+            <div class="form-row">
+              <span class="form-label" style="min-width:120px">Weight per pax</span>
+              <input type="range" id="pax-wt" min="100" max="350" step="5" value="190" style="flex:1">
+              <span class="form-val" id="pax-wt-v">190</span>
+              <span class="form-unit">lbs</span>
+            </div>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-head"><span class="dot" style="background:var(--cyan)"></span>PAX SUMMARY</div>
+          <div class="res-row"><span class="res-label">Passengers aboard</span><span class="res-val big" id="pax-count">0</span></div>
+          <div class="res-row"><span class="res-label">Total pax weight</span><span class="res-val big ok" id="pax-total-wt">0 lbs</span></div>
+          <div class="res-row"><span class="res-label">Fwd row</span><span class="res-val" id="pax-fwd-count">0 / 4</span></div>
+          <div class="res-row"><span class="res-label">Centre row</span><span class="res-val" id="pax-ctr-count">0 / 5</span></div>
+          <div class="res-row"><span class="res-label">Aft row</span><span class="res-val" id="pax-aft-count">0 / 4</span></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><span class="dot" style="background:var(--yellow)"></span>QUICK SELECT</div>
+          <div class="qsel-row">
+            <button class="qbtn" onclick="setAllSeats(false)">CLEAR ALL</button>
+            <button class="qbtn" onclick="setRowSeats('fwd',true)">FWD ROW</button>
+            <button class="qbtn" onclick="setRowSeats('ctr',true)">CTR ROW</button>
+            <button class="qbtn" onclick="setRowSeats('aft',true)">AFT ROW</button>
+            <button class="qbtn green" onclick="setAllSeats(true)">FULL PAX</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ████ W & B ████ -->
+<div class="tab-pane" id="tab-wb">
+  <div class="pane-wide">
+    <div class="two-col" style="margin-bottom:16px">
+      <div class="perf-block" style="margin-bottom:0">
+        <div class="perf-block-head"><span class="dot" style="width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0"></span>WEIGHT SUMMARY</div>
+        <div class="perf-grid">
+          <div class="perf-cell"><div class="perf-cell-label">Takeoff Gross Weight</div><div class="perf-cell-val" id="wb-togw">—<span class="perf-cell-unit">lbs</span></div><div class="limit-bar-wrap"><div class="limit-bar-bg"><div class="limit-bar-fill" id="bar-togw"></div></div></div></div>
+          <div class="perf-cell"><div class="perf-cell-label">Landing Gross Weight</div><div class="perf-cell-val" id="wb-lgw">—<span class="perf-cell-unit">lbs</span></div><div class="limit-bar-wrap"><div class="limit-bar-bg"><div class="limit-bar-fill" id="bar-lgw"></div></div></div></div>
+          <div class="perf-cell"><div class="perf-cell-label">Mid-Mission Weight</div><div class="perf-cell-val" id="wb-mid">—<span class="perf-cell-unit">lbs</span></div></div>
+          <div class="perf-cell"><div class="perf-cell-label">Zero Fuel Weight</div><div class="perf-cell-val" id="wb-zfw">—<span class="perf-cell-unit">lbs</span></div></div>
+        </div>
+      </div>
+      <div class="perf-block" style="margin-bottom:0">
+        <div class="perf-block-head"><span class="dot" style="width:6px;height:6px;border-radius:50%;background:var(--cyan);flex-shrink:0"></span>CENTER OF GRAVITY</div>
+        <div class="perf-grid">
+          <div class="perf-cell"><div class="perf-cell-label">T/O Longitudinal CG</div><div class="perf-cell-val" id="wb-cg-long">—<span class="perf-cell-unit">in</span></div></div>
+          <div class="perf-cell"><div class="perf-cell-label">T/O Lateral CG</div><div class="perf-cell-val" id="wb-cg-lat">—<span class="perf-cell-unit">in</span></div></div>
+          <div class="perf-cell"><div class="perf-cell-label">Landing CG</div><div class="perf-cell-val" id="wb-cg-ldg">—<span class="perf-cell-unit">in</span></div></div>
+          <div class="perf-cell"><div class="perf-cell-label">Hoist Lateral CG</div><div class="perf-cell-val" id="wb-hoist-lat">—<span class="perf-cell-unit">in</span></div></div>
+          <div class="perf-cell"><div class="perf-cell-label">CG Fwd Limit</div><div class="perf-cell-val" id="wb-cg-fwd" style="font-size:16px">—<span class="perf-cell-unit">in</span></div></div>
+          <div class="perf-cell"><div class="perf-cell-label">CG Aft Limit</div><div class="perf-cell-val" id="wb-cg-aft" style="font-size:16px">—<span class="perf-cell-unit">in</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="cg-chart-wrap">
+      <div class="cg-chart-title">CG ENVELOPE — LONGITUDINAL &nbsp;|&nbsp; <span style="color:var(--green)">● T/O</span> &nbsp;<span style="color:var(--yellow)">● MID</span> &nbsp;<span style="color:var(--blue)">● LDG</span> &nbsp;&nbsp; MAX GW: 12,200 lbs</div>
+      <canvas id="cgCanvas" width="800" height="320"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ████ PERFORMANCE ████ -->
+<div class="tab-pane" id="tab-perf">
+  <div class="pane-wide">
+    <div class="two-col">
+      <div>
+        <div class="perf-block">
+          <div class="perf-block-head"><span class="dot" style="width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0"></span>MAX TAKEOFF WEIGHT</div>
+          <div class="perf-grid">
+            <div class="perf-cell"><div class="perf-cell-label">Runway Profile (AEO)</div><div class="perf-cell-val" id="p-rwy-n">—<span class="perf-cell-unit">lbs</span></div><div class="limit-bar-wrap"><div class="limit-bar-bg"><div class="limit-bar-fill" id="bar-rwy-n"></div></div></div></div>
+            <div class="perf-cell"><div class="perf-cell-label">Backup Profile (AEO)</div><div class="perf-cell-val" id="p-rwy-b">—<span class="perf-cell-unit">lbs</span></div><div class="limit-bar-wrap"><div class="limit-bar-bg"><div class="limit-bar-fill" id="bar-rwy-b"></div></div></div></div>
+          </div>
+        </div>
+        <div class="perf-block">
+          <div class="perf-block-head"><span class="dot" style="width:6px;height:6px;border-radius:50%;background:var(--yellow);flex-shrink:0"></span>VSI @ 70 kts</div>
+          <div class="perf-grid">
+            <div class="perf-cell"><div class="perf-cell-label">VSI AEO @ 70 kts</div><div class="perf-cell-val" id="p-vsi-aeo">—<span class="perf-cell-unit">fpm</span></div></div>
+            <div class="perf-cell"><div class="perf-cell-label">VSI OEI @ 70 kts</div><div class="perf-cell-val" id="p-vsi-oei">—<span class="perf-cell-unit">fpm</span></div></div>
+          </div>
+        </div>
+        <div class="perf-block">
+          <div class="perf-block-head"><span class="dot" style="width:6px;height:6px;border-radius:50%;background:var(--red);flex-shrink:0"></span>CRITICAL VALUES</div>
+          <div class="perf-grid">
+            <div class="perf-cell"><div class="perf-cell-label">Drop-Down Altitude</div><div class="perf-cell-val" id="p-dropdown">—<span class="perf-cell-unit">ft</span></div></div>
+            <div class="perf-cell"><div class="perf-cell-label">Rejected T/O Distance</div><div class="perf-cell-val" id="p-rtod">—<span class="perf-cell-unit">ft</span></div></div>
+            <div class="perf-cell"><div class="perf-cell-label">Endurance Airspeed</div><div class="perf-cell-val" id="p-endur">—<span class="perf-cell-unit">KIAS</span></div></div>
+            <div class="perf-cell"><div class="perf-cell-label">VTOSS / VY</div><div class="perf-cell-val" style="font-size:16px;color:var(--muted)">40 / 70<span class="perf-cell-unit">KIAS</span></div></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="perf-block">
+          <div class="perf-block-head"><span class="dot" style="width:6px;height:6px;border-radius:50%;background:var(--cyan);flex-shrink:0"></span>HOVER PERFORMANCE</div>
+          <div class="sub-div">IGE — IN GROUND EFFECT (4 ft)</div>
+          <div class="perf-grid">
+            <div class="perf-cell"><div class="perf-cell-label">Max IGE OEI (2-min)</div><div class="perf-cell-val" id="p-ige-oei">—<span class="perf-cell-unit">lbs</span></div><div class="limit-bar-wrap"><div class="limit-bar-bg"><div class="limit-bar-fill" id="bar-ige-oei"></div></div></div></div>
+            <div class="perf-cell"><div class="perf-cell-label">Max IGE AEO (cont.)</div><div class="perf-cell-val" id="p-ige-aeo">—<span class="perf-cell-unit">lbs</span></div><div class="limit-bar-wrap"><div class="limit-bar-bg"><div class="limit-bar-fill" id="bar-ige-aeo"></div></div></div></div>
+          </div>
+          <div class="sub-div">OGE — OUT OF GROUND EFFECT (60 ft)</div>
+          <div class="perf-grid">
+            <div class="perf-cell"><div class="perf-cell-label">Max OGE OEI (2-min)</div><div class="perf-cell-val" id="p-oge-oei">—<span class="perf-cell-unit">lbs</span></div><div class="limit-bar-wrap"><div class="limit-bar-bg"><div class="limit-bar-fill" id="bar-oge-oei"></div></div></div></div>
+            <div class="perf-cell"><div class="perf-cell-label">Max OGE AEO (cont.)</div><div class="perf-cell-val" id="p-oge-aeo">—<span class="perf-cell-unit">lbs</span></div><div class="limit-bar-wrap"><div class="limit-bar-bg"><div class="limit-bar-fill" id="bar-oge-aeo"></div></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /tab-body -->
+</div><!-- /app -->
+
+<script>
+// ═══════════════ AIRCRAFT DATA
+const AC={emptyWt:8482,emptyCG:143.6,emptyLatCG:-0.1};
+const CREW_STATIONS=[{id:'pilot',arm:47,latArm:22},{id:'copilot',arm:47,latArm:21.2},{id:'fop',arm:107.4,latArm:-3},{id:'sop',arm:107.4,latArm:-3}];
+const PAX_STATIONS=[
+  {id:'fwd_lo',arm:87,latArm:-23},{id:'fwd_li',arm:87,latArm:-8},{id:'fwd_ri',arm:87,latArm:8},{id:'fwd_ro',arm:87,latArm:23},
+  {id:'ctr_lo',arm:117,latArm:-34},{id:'ctr_lm',arm:117,latArm:-19},{id:'ctr_c',arm:117,latArm:0},{id:'ctr_rm',arm:117,latArm:19},{id:'ctr_ro',arm:117,latArm:34},
+  {id:'aft_fl',arm:139,latArm:-26},{id:'aft_al',arm:156,latArm:-26},{id:'aft_fr',arm:139,latArm:26},{id:'aft_ar',arm:156,latArm:26},
+];
+const EQUIPMENT=[
+  {id:'msnConsole',label:'MSN Console',arm:79.5,latArm:0,wt:126.4},
+  {id:'reelingMach',label:'Reeling Machine',arm:91.4,latArm:35,wt:433},
+  {id:'sonarUnit',label:'Sonar Unit',arm:114,latArm:23.3,wt:362},
+  {id:'hoist',label:'Hoist',arm:87,latArm:48,wt:154},
+  {id:'auxTank',label:'Aux Tank',arm:149,latArm:-26,wt:73},
+  {id:'cargoHook',label:'Cargo Hook',arm:114,latArm:21,wt:39},
+  {id:'deckLock',label:'Deck Lock',arm:114,latArm:21,wt:46},
+  {id:'msnSensor',label:'MSN Sensor Seat',arm:107.4,latArm:-3,wt:36.2},
+  {id:'litters',label:'L Litters (×2)',arm:119,latArm:-26,wt:62},
+  {id:'sarEquip',label:'SAR Equip Board',arm:114,latArm:0,wt:0},
+  {id:'stretcher',label:'Stretcher',arm:114,latArm:0,wt:0},
+  {id:'bellyFunnel',label:'Belly Funnel',arm:114,latArm:21,wt:23.3},
+];
+const FUEL_CG_TBL=[[0,132.5],[100,132.5],[200,133.5],[400,135.1],[600,136],[800,137],[1000,140],[1200,142.5],[1300,143.5],[1900,150.4]];
+const HOGE_OEI=[[10,12200],[15,12200],[20,12200],[25,12200],[30,12000],[35,11500],[40,11000],[45,10500]];
+const HIGE_OEI=[[10,9625],[15,9450],[20,9335],[25,9170],[30,9000],[35,8750],[40,8500],[45,8310]];
+const ENDUR_TBL=[[10000,62],[10800,70],[12000,78]];
+const DROP_TBL=[[9250,25],[9500,25],[9750,20],[10000,15],[10250,10],[10500,5],[10750,0],[11000,0]];
+const CG_ENV=[{wt:6400,fwd:130.4,aft:144},{wt:8800,fwd:130,aft:144},{wt:12200,fwd:135.6,aft:141.4}];
+
+// ═══════════════ STATE
+const state={
+  oat:20,pa:0,wind:0,fuel:1300,burnrate:700,flighttime:1.0,
+  get burn(){return Math.min(this.fuel,this.burnrate*this.flighttime);},
+  crewWts:{pilot:190,copilot:190,fop:190,sop:0},
+  paxWt:190,paxOcc:new Set(),equip:new Set(),bag:0,
+};
+
+// ═══════════════ MATH
+function interp(tbl,x){
+  const s=[...tbl].sort((a,b)=>a[0]-b[0]);
+  if(x<=s[0][0])return s[0][1];
+  if(x>=s[s.length-1][0])return s[s.length-1][1];
+  for(let i=0;i<s.length-1;i++){
+    if(x>=s[i][0]&&x<=s[i+1][0]){const t=(x-s[i][0])/(s[i+1][0]-s[i][0]);return s[i][1]+t*(s[i+1][1]-s[i][1]);}
+  }
+}
+const fuelArm=l=>interp(FUEL_CG_TBL,l);
+const hogeOEI=t=>interp(HOGE_OEI,t);
+const higeOEI=t=>interp(HIGE_OEI,t);
+const hogeAEO=t=>Math.min(12200,hogeOEI(t)+1500);
+const higeAEO=t=>Math.min(12200,higeOEI(t)+1500);
+const endurKIAS=w=>interp(ENDUR_TBL,w);
+const dropDown=w=>Math.max(0,interp(DROP_TBL,w));
+const da=(pa,oat)=>pa+120*oat;
+function cgEnv(wt){
+  const s=[...CG_ENV].sort((a,b)=>a.wt-b.wt);
+  let fwd,aft;
+  if(wt<=s[0].wt){fwd=s[0].fwd;aft=s[0].aft;}
+  else if(wt>=s.at(-1).wt){fwd=s.at(-1).fwd;aft=s.at(-1).aft;}
+  else{for(let i=0;i<s.length-1;i++){if(wt>=s[i].wt&&wt<=s[i+1].wt){const t=(wt-s[i].wt)/(s[i+1].wt-s[i].wt);fwd=s[i].fwd+t*(s[i+1].fwd-s[i].fwd);aft=s[i].aft+t*(s[i+1].aft-s[i].aft);break;}}}
+  return{fwd,aft};
+}
+const vsi=(wt,oei)=>Math.round((oei?1370:2400)*Math.max(0,1-(wt-10000)/5000));
+const rtod=wt=>Math.round(1100*(wt/11000));
+
+function compute(){
+  let wt=AC.emptyWt,mom=AC.emptyWt*AC.emptyCG,lat=AC.emptyWt*AC.emptyLatCG;
+  for(const s of CREW_STATIONS){const w=state.crewWts[s.id]||0;wt+=w;mom+=w*s.arm;lat+=w*s.latArm;}
+  for(const s of PAX_STATIONS){if(state.paxOcc.has(s.id)){wt+=state.paxWt;mom+=state.paxWt*s.arm;lat+=state.paxWt*s.latArm;}}
+  let eqWt=0,eqMom=0,eqLat=0;
+  for(const eq of EQUIPMENT){if(state.equip.has(eq.id)){eqWt+=eq.wt;eqMom+=eq.wt*eq.arm;eqLat+=eq.wt*eq.latArm;}}
+  wt+=eqWt;mom+=eqMom;lat+=eqLat;
+  wt+=state.bag;mom+=state.bag*114;
+  const zfw=wt,zfwCG=mom/wt;
+  wt+=state.fuel;mom+=state.fuel*fuelArm(state.fuel);lat+=state.fuel*(-0.7);
+  const togw=wt,toCG=mom/wt,latCG=lat/wt;
+  const lf=Math.max(0,state.fuel-state.burn),lgw=zfw+lf,ldgCG=(zfw*zfwCG+lf*fuelArm(lf))/lgw;
+  const mf=Math.max(0,state.fuel-state.burn/2),mwt=zfw+mf,midCG=(zfw*zfwCG+mf*fuelArm(mf))/mwt;
+  const tEff=state.oat+state.pa/120,DA=da(state.pa,state.oat);
+  const envTO=cgEnv(togw);envTO.ok=toCG>=envTO.fwd&&toCG<=envTO.aft;
+  const envLDG=cgEnv(lgw);envLDG.ok=ldgCG>=envLDG.fwd&&ldgCG<=envLDG.aft;
+  const crewTotal=Object.values(state.crewWts).reduce((a,b)=>a+b,0);
+  return{togw,toCG,latCG,lgw,ldgCG,mwt,midCG,zfw,zfwCG,DA,tEff,envTO,envLDG,
+    hogeOEI:hogeOEI(tEff),hogeAEO:hogeAEO(tEff),higeOEI:higeOEI(tEff),higeAEO:higeAEO(tEff),
+    rwyN:Math.min(12200,hogeAEO(tEff)),rwyB:Math.min(11900,hogeAEO(tEff)),
+    vsiAEO:vsi(mwt,false),vsiOEI:vsi(mwt,true),dropDown:dropDown(togw),
+    endur:endurKIAS(mwt),rtod:rtod(togw),crewTotal,eqWt,
+  };
+}
+
+// ═══════════════ HELPERS
+const fmt=(n,d=0)=>n.toFixed(d).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+const pct=(v,m)=>Math.min(100,Math.max(0,v/m*100)).toFixed(1)+'%';
+const sCls=(v,lim)=>{const r=v/lim;return r>1?'err':r>0.95?'warn':'ok';};
+const el=id=>document.getElementById(id);
+function setRes(id,txt,cls=''){const e=el(id);if(!e)return;e.textContent=txt;e.className='res-val'+(cls?' '+cls:'');}
+function setPV(id,txt,cls=''){
+  const e=el(id);if(!e)return;
+  const u=e.querySelector('.perf-cell-unit');const uh=u?u.outerHTML:'';
+  e.innerHTML=txt+uh;e.className='perf-cell-val'+(cls?' '+cls:'');
+}
+function setBar(id,pv,col){const e=el(id);if(e){e.style.width=pv;e.style.background=col;}}
+const bCol=c=>c==='ok'?'#00e87a':c==='warn'?'#f5c842':'#ff4060';
+
+// ═══════════════ CG CHART
+function drawCGChart(r){
+  const canvas=el('cgCanvas');if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  const PAD={l:56,r:24,t:16,b:32};
+  const cw=W-PAD.l-PAD.r,ch=H-PAD.t-PAD.b;
+  const xMin=126,xMax=150,yMin=5000,yMax=13500;
+  const px=x=>PAD.l+(x-xMin)/(xMax-xMin)*cw;
+  const py=y=>PAD.t+ch-(y-yMin)/(yMax-yMin)*ch;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0b0f1a';ctx.fillRect(0,0,W,H);
+  const xT=[128,130,132,134,136,138,140,142,144,146,148],yT=[6000,8000,10000,12000];
+  ctx.strokeStyle='#1a2235';ctx.lineWidth=1;
+  xT.forEach(x=>{ctx.beginPath();ctx.moveTo(px(x),PAD.t);ctx.lineTo(px(x),PAD.t+ch);ctx.stroke();});
+  yT.forEach(y=>{ctx.beginPath();ctx.moveTo(PAD.l,py(y));ctx.lineTo(PAD.l+cw,py(y));ctx.stroke();});
+  ctx.fillStyle='#4a6080';ctx.font='11px Share Tech Mono,monospace';ctx.textAlign='center';
+  xT.forEach(x=>ctx.fillText(x,px(x),H-6));
+  ctx.textAlign='right';yT.forEach(y=>ctx.fillText((y/1000).toFixed(0)+'k',PAD.l-6,py(y)+4));
+  const ep=CG_ENV.sort((a,b)=>a.wt-b.wt);
+  const fp=ep.map(p=>({x:px(p.fwd),y:py(p.wt)}));
+  const ap=[...ep].reverse().map(p=>({x:px(p.aft),y:py(p.wt)}));
+  ctx.beginPath();ctx.moveTo(fp[0].x,fp[0].y);fp.slice(1).forEach(p=>ctx.lineTo(p.x,p.y));
+  ap.forEach(p=>ctx.lineTo(p.x,p.y));ctx.closePath();
+  ctx.fillStyle='rgba(30,60,140,0.25)';ctx.fill();ctx.strokeStyle='#3b8eff';ctx.lineWidth=2;ctx.stroke();
+  ctx.setLineDash([5,3]);ctx.strokeStyle='#f5c842';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(px(r.toCG),py(r.togw));ctx.lineTo(px(r.ldgCG),py(r.lgw));ctx.stroke();ctx.setLineDash([]);
+  [{cg:r.toCG,wt:r.togw,c:'#00e87a',l:'T/O'},{cg:r.midCG,wt:r.mwt,c:'#f5c842',l:'MID'},{cg:r.ldgCG,wt:r.lgw,c:'#3b8eff',l:'LDG'}].forEach(p=>{
+    ctx.beginPath();ctx.arc(px(p.cg),py(p.wt),7,0,Math.PI*2);ctx.fillStyle=p.c;ctx.fill();
+    ctx.fillStyle=p.c;ctx.font='11px Share Tech Mono,monospace';ctx.textAlign='left';
+    ctx.fillText(p.l,px(p.cg)+11,py(p.wt)+4);
+  });
+}
+
+// ═══════════════ UPDATE
+function update(){
+  const r=compute();const MAX=12200;
+  const tCls=sCls(r.togw,MAX);
+  // Header
+  el('st-weight').textContent=`T/O WT: ${fmt(r.togw)} lbs`;el('st-weight').className=`status-pill ${tCls}`;
+  el('st-cg').textContent=`CG: ${r.toCG.toFixed(2)} in`;el('st-cg').className=`status-pill ${r.envTO.ok?'ok':'err'}`;
+  el('st-da').textContent=`DA: ${fmt(r.DA)} ft`;el('st-da').className=`status-pill ${r.DA>6000?'warn':'ok'}`;
+  // WEATHER
+  setRes('da-out',`${fmt(r.DA)} ft`,r.DA>6000?'warn':'ok');
+  setRes('eff-temp-out',`${r.tEff.toFixed(1)} °C`);
+  const isaDev=r.tEff-(15-r.pa*0.002);
+  setRes('isa-dev-out',`${isaDev>=0?'+':''}${isaDev.toFixed(1)} °C`,Math.abs(isaDev)>20?'warn':'');
+  // FUEL
+  const bt=Math.round(state.burnrate*state.flighttime);
+  setRes('burn-total-out',`${fmt(Math.min(state.fuel,bt))} lbs`);
+  setRes('fuel-cg-out',`${fuelArm(state.fuel).toFixed(1)} in`);
+  setRes('ldg-fuel-out',`${fmt(Math.max(0,state.fuel-state.burn))} lbs`);
+  setRes('endurance-out',`${state.burnrate>0?(state.fuel/state.burnrate).toFixed(1):'—'} h`);
+  // WEIGHTS
+  setRes('crew-total-out',`${r.crewTotal} lbs`);
+  setRes('pax-total-wt2',`${state.paxOcc.size*state.paxWt} lbs`);
+  setRes('equip-total-out',`${fmt(r.eqWt)} lbs`);
+  setRes('bag-total-out',`${state.bag} lbs`);
+  setRes('zfw-out',`${fmt(r.zfw)} lbs`,'big');
+  setRes('fuel-out2',`${fmt(state.fuel)} lbs`);
+  const tw=el('togw-out2');if(tw){tw.textContent=`${fmt(r.togw)} lbs`;tw.className=`res-val big ${tCls}`;}
+  // EQUIP
+  setRes('equip-count-out',`${[...state.equip].length}`,'big');
+  setRes('equip-wt-out',`${fmt(r.eqWt)} lbs`,'big');
+  // STATIONS
+  const fwdIds=['fwd_lo','fwd_li','fwd_ri','fwd_ro'],ctrIds=['ctr_lo','ctr_lm','ctr_c','ctr_rm','ctr_ro'],aftIds=['aft_fl','aft_al','aft_fr','aft_ar'];
+  const fwdN=fwdIds.filter(id=>state.paxOcc.has(id)).length;
+  const ctrN=ctrIds.filter(id=>state.paxOcc.has(id)).length;
+  const aftN=aftIds.filter(id=>state.paxOcc.has(id)).length;
+  setRes('pax-count',`${state.paxOcc.size}`,'res-val big');
+  setRes('pax-total-wt',`${state.paxOcc.size*state.paxWt} lbs`,'res-val big ok');
+  const e1=el('pax-fwd-count');if(e1)e1.textContent=`${fwdN} / 4`;
+  const e2=el('pax-ctr-count');if(e2)e2.textContent=`${ctrN} / 5`;
+  const e3=el('pax-aft-count');if(e3)e3.textContent=`${aftN} / 4`;
+  el('pilot-wt-label').textContent=`${state.crewWts.pilot} lbs`;
+  el('copilot-wt-label').textContent=`${state.crewWts.copilot} lbs`;
+  // W&B
+  setPV('wb-togw',fmt(r.togw),tCls);setPV('wb-lgw',fmt(r.lgw),sCls(r.lgw,MAX));
+  setPV('wb-mid',fmt(r.mwt));setPV('wb-zfw',fmt(r.zfw));
+  setPV('wb-cg-long',r.toCG.toFixed(2),r.envTO.ok?'ok':'err');
+  setPV('wb-cg-lat',r.latCG.toFixed(2),Math.abs(r.latCG)<8?'ok':'warn');
+  setPV('wb-cg-ldg',r.ldgCG.toFixed(2),r.envLDG.ok?'ok':'err');
+  setPV('wb-hoist-lat',r.latCG.toFixed(2),Math.abs(r.latCG)<=10?'ok':'err');
+  setPV('wb-cg-fwd',r.envTO.fwd.toFixed(1));setPV('wb-cg-aft',r.envTO.aft.toFixed(1));
+  setBar('bar-togw',pct(r.togw,MAX),bCol(tCls));setBar('bar-lgw',pct(r.lgw,MAX),bCol(sCls(r.lgw,MAX)));
+  drawCGChart(r);
+  // PERF
+  const rNc=sCls(r.togw,r.rwyN),rBc=sCls(r.togw,r.rwyB);
+  setPV('p-rwy-n',fmt(r.rwyN),rNc);setPV('p-rwy-b',fmt(r.rwyB),rBc);
+  setBar('bar-rwy-n',pct(r.togw,r.rwyN),bCol(rNc));setBar('bar-rwy-b',pct(r.togw,r.rwyB),bCol(rBc));
+  setPV('p-ige-oei',fmt(r.higeOEI),sCls(r.togw,r.higeOEI));setPV('p-ige-aeo',fmt(r.higeAEO),sCls(r.togw,r.higeAEO));
+  setPV('p-oge-oei',fmt(r.hogeOEI),sCls(r.togw,r.hogeOEI));setPV('p-oge-aeo',fmt(r.hogeAEO),sCls(r.togw,r.hogeAEO));
+  setBar('bar-ige-oei',pct(r.togw,r.higeOEI),'#00d4ff');setBar('bar-ige-aeo',pct(r.togw,r.higeAEO),'#00d4ff');
+  setBar('bar-oge-oei',pct(r.togw,r.hogeOEI),'#3b8eff');setBar('bar-oge-aeo',pct(r.togw,r.hogeAEO),'#3b8eff');
+  setPV('p-vsi-aeo','+'+r.vsiAEO,'ok');setPV('p-vsi-oei','+'+r.vsiOEI,r.vsiOEI>0?'ok':'err');
+  setPV('p-dropdown',r.dropDown.toFixed(0),r.dropDown>=25?'ok':'warn');
+  setPV('p-rtod',fmt(r.rtod));setPV('p-endur',Math.round(r.endur));
+}
+
+// ═══════════════ SEAT TOGGLE
+function toggleSeat(id){
+  state.paxOcc.has(id)?state.paxOcc.delete(id):state.paxOcc.add(id);
+  el('seat-'+id).classList.toggle('occupied',state.paxOcc.has(id));
+  update();
+}
+function setAllSeats(on){
+  PAX_STATIONS.forEach(s=>{on?state.paxOcc.add(s.id):state.paxOcc.delete(s.id);el('seat-'+s.id).classList.toggle('occupied',on);});update();
+}
+function setRowSeats(prefix,on){
+  PAX_STATIONS.filter(s=>s.id.startsWith(prefix)).forEach(s=>{on?state.paxOcc.add(s.id):state.paxOcc.delete(s.id);el('seat-'+s.id).classList.toggle('occupied',on);});update();
+}
+
+// ═══════════════ EQUIP GRID
+function buildEquipGrid(){
+  const grid=el('equip-grid');grid.innerHTML='';
+  EQUIPMENT.forEach(eq=>{
+    const div=document.createElement('div');div.className='equip-btn';div.id='eq-'+eq.id;
+    div.innerHTML=`<div class="equip-check"></div><span class="equip-name">${eq.label}</span><span class="equip-wt">${eq.wt>0?eq.wt+'lb':''}</span>`;
+    div.addEventListener('click',()=>{
+      if(state.equip.has(eq.id)){state.equip.delete(eq.id);div.classList.remove('on');div.querySelector('.equip-check').textContent='';}
+      else{state.equip.add(eq.id);div.classList.add('on');div.querySelector('.equip-check').textContent='✓';}
+      update();
+    });
+    grid.appendChild(div);
+  });
+}
+
+// ═══════════════ SLIDERS
+function bindSlider(id,key,labelId,nested){
+  const e=el(id);if(!e)return;
+  e.addEventListener('input',()=>{
+    const v=Number(e.value);if(nested)state[nested][key]=v;else state[key]=v;
+    if(labelId)el(labelId).textContent=v;update();
+  });
+}
+
+// ═══════════════ TABS
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');el('tab-'+btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab==='wb'){setTimeout(()=>{resizeCG();update();},80);}
+  });
+});
+function resizeCG(){
+  const c=el('cgCanvas');if(!c)return;
+  const w=c.parentElement?c.parentElement.offsetWidth:c.offsetWidth;
+  c.width=Math.max(w,300)||800;
+}
+window.addEventListener('resize',()=>{resizeCG();update();});
+
+// ═══════════════ INIT
+buildEquipGrid();
+bindSlider('oat','oat','oat-v');bindSlider('pa','pa','pa-v');bindSlider('wind','wind','wind-v');
+bindSlider('fuel','fuel','fuel-v');bindSlider('bag','bag','bag-v');
+bindSlider('wt-pilot','pilot','wt-pilot-v','crewWts');bindSlider('wt-copilot','copilot','wt-copilot-v','crewWts');
+bindSlider('wt-fop','fop','wt-fop-v','crewWts');bindSlider('wt-sop','sop','wt-sop-v','crewWts');
+
+el('burnrate').addEventListener('input',function(){state.burnrate=Number(this.value);el('burnrate-v').textContent=this.value;update();});
+el('flighttime').addEventListener('input',function(){state.flighttime=Number(this.value);el('flighttime-v').textContent=Number(this.value).toFixed(1);update();});
+el('pax-wt').addEventListener('input',function(){state.paxWt=Number(this.value);el('pax-wt-v').textContent=this.value;update();});
+
+update();
+setTimeout(()=>{resizeCG();update();},150);
+// iOS: prevent double-tap zoom on buttons
+document.addEventListener('touchend',function(e){
+  if(e.target.tagName==='BUTTON'||e.target.closest('.equip-btn')||e.target.closest('.tab-btn')||e.target.closest('.seat-zone')){
+    e.preventDefault();
+  }
+},{passive:false});
+</script>
+</body>
+</html>
